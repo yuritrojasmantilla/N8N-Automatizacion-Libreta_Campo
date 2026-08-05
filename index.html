@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Registro de Muestras Geológicas</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+
+      <!-- Panel izquierdo -->
+      <aside class="side">
+        <div class="brand">
+          <span class="brand-badge">H₂</span>
+          <span class="brand-name">Exploración Alta Guajira</span>
+        </div>
+
+        <div class="side-content">
+          <p class="eyebrow">Campaña de campo</p>
+          <h1 class="headline">
+            Registro<br />
+            de muestras,<br />
+            <span class="accent">directo<br />del terreno.</span>
+          </h1>
+          <p class="side-text">
+            Diligencia el formulario en campo. La información se clasifica, almacena y
+            notifica automáticamente.
+          </p>
+        </div>
+
+        <div class="side-footer">
+          <span class="dot" aria-hidden="true"></span>
+          <div>
+            <p class="side-footer-title">Clasificación automática</p>
+            <p class="side-footer-text">
+              El laboratorio se asigna según el tipo de muestra y la prioridad se notifica
+              al equipo cuando es alta.
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Panel derecho -->
+      <section class="main">
+
+        <p class="section-label">Nueva muestra</p>
+        <h2 class="section-title">Registra un punto de muestreo</h2>
+        <p class="section-hint">Los campos marcados con * son obligatorios.</p>
+
+        <form id="form-muestra" class="form" novalidate>
+
+          <div class="row">
+            <div class="field">
+              <label for="m-codigo">Código de muestra *</label>
+              <input
+                id="m-codigo"
+                name="codigo"
+                type="text"
+                placeholder="GUA-00152"
+                pattern="^[A-Za-zÁÉÍÓÚáéíóú]{2,10}-\d{3,6}$"
+                title="Formato sugerido: MUNICIPIO-CONSECUTIVO, ej. GUA-00152"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="m-fecha">Fecha de muestreo *</label>
+              <input id="m-fecha" name="fecha" type="date" required />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="m-geologo">Geólogo responsable *</label>
+              <select id="m-geologo" name="geologo" required>
+                <option value="" disabled selected>Selecciona una opción</option>
+                <option value="otro">Otro (escribir nombre)</option>
+              </select>
+            </div>
+            <div class="field field-other" id="m-geologo-otro-wrap" hidden>
+              <label for="m-geologo-otro">Nombre del geólogo *</label>
+              <input
+                id="m-geologo-otro"
+                name="geologo_otro"
+                type="text"
+                placeholder="Nombre y apellido"
+                data-other-for="geologo"
+                data-trigger-value="otro"
+              />
+            </div>
+          </div>
+
+          <div class="row row-3">
+            <div class="field">
+              <label for="m-lat">Latitud *</label>
+              <input
+                id="m-lat"
+                name="latitud"
+                type="number"
+                step="any"
+                min="-90"
+                max="90"
+                placeholder="11.95"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="m-lon">Longitud *</label>
+              <input
+                id="m-lon"
+                name="longitud"
+                type="number"
+                step="any"
+                min="-180"
+                max="180"
+                placeholder="-72.01"
+                required
+              />
+            </div>
+            <div class="field">
+              <button type="button" class="geo-btn" id="btn-geo">
+                Usar ubicación GPS
+              </button>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="m-municipio">Municipio *</label>
+              <select id="m-municipio" name="municipio" required>
+                <option value="" disabled selected>Selecciona</option>
+                <option value="uribia">Uribia</option>
+                <option value="manaure">Manaure</option>
+                <option value="maicao">Maicao</option>
+                <option value="riohacha">Riohacha</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div class="field field-other" id="m-municipio-otro-wrap" hidden>
+              <label for="m-municipio-otro">¿Cuál municipio? *</label>
+              <input
+                id="m-municipio-otro"
+                name="municipio_otro"
+                type="text"
+                placeholder="Nombre del municipio"
+                data-other-for="municipio"
+                data-trigger-value="otro"
+              />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="m-tipo">Tipo de muestra *</label>
+              <select id="m-tipo" name="tipo" required>
+                <option value="" disabled selected>Selecciona</option>
+                <option value="roca">Roca</option>
+                <option value="suelo">Suelo</option>
+                <option value="sedimento">Sedimento</option>
+                <option value="agua">Agua</option>
+                <option value="gas">Gas del suelo</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="m-prioridad">Prioridad de análisis *</label>
+              <select id="m-prioridad" name="prioridad" required>
+                <option value="" disabled selected>Selecciona</option>
+                <option value="alta">Alta</option>
+                <option value="media">Media</option>
+                <option value="normal">Normal</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="m-litologia">Litología *</label>
+              <select id="m-litologia" name="litologia" required>
+                <option value="" disabled selected>Selecciona</option>
+                <option value="peridotita">Peridotita</option>
+                <option value="serpentinita">Serpentinita</option>
+                <option value="harzburgita">Harzburgita</option>
+                <option value="dunita">Dunita</option>
+                <option value="gabro">Gabro</option>
+                <option value="basalto">Basalto</option>
+                <option value="sedimentaria">Sedimentaria no diferenciada</option>
+                <option value="otra">Otra</option>
+              </select>
+            </div>
+            <div class="field field-other" id="m-litologia-otro-wrap" hidden>
+              <label for="m-litologia-otro">¿Cuál litología? *</label>
+              <input
+                id="m-litologia-otro"
+                name="litologia_otra"
+                type="text"
+                placeholder="Describe la litología"
+                data-other-for="litologia"
+                data-trigger-value="otra"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="m-fotos">Fotografías <span class="opt">(opcional)</span></label>
+            <input
+              id="m-fotos"
+              name="fotos"
+              type="file"
+              accept="image/png, image/jpeg"
+              multiple
+            />
+            <p class="field-help">Formatos JPG o PNG, máximo 10 MB por archivo.</p>
+          </div>
+
+          <div class="field">
+            <label for="m-observaciones">
+              Observaciones <span class="opt">(opcional)</span>
+            </label>
+            <textarea
+              id="m-observaciones"
+              name="observaciones"
+              rows="4"
+              placeholder="Contexto geomorfológico, olores, textura, testigos, etc."
+            ></textarea>
+          </div>
+
+          <p class="status" role="status" aria-live="polite"></p>
+
+          <button class="submit" type="submit">
+            <span>Registrar muestra</span>
+            <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

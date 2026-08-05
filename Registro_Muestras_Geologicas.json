@@ -1,0 +1,262 @@
+{
+  "name": "Registro de Muestras Geológicas - Alta Guajira",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Cómo dejar esto funcionando\n\n1. **Webhook**: revisa que el método sea POST. Copia la *Production URL* (no la de test) y ponla en `config.createWebhook` de tu `app.js`. Activa el workflow con el interruptor arriba a la derecha.\n2. **PostgreSQL**: conecta tus credenciales y confirma que exista la tabla `samples` con las columnas usadas abajo.\n3. **Google Sheets**: conecta tus credenciales y reemplaza el `documentId` por el ID real de tu hoja (está en la URL de Google Sheets).\n4. **Gmail**: conecta tus credenciales y reemplaza los correos de `sendTo` por los reales (laboratorio, coordinador, director).\n5. Los dos nodos **Responder...** ya traen el header `Access-Control-Allow-Origin: *` para que el navegador no bloquee la respuesta por CORS.",
+        "height": 380,
+        "width": 460
+      },
+      "id": "sticky-notas",
+      "name": "Notas de configuración",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-200, -420]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "26c27d4a-16a3-4fb5-a7fc-660d426ac7b0",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-200, 0],
+      "webhookId": "26c27d4a-16a3-4fb5-a7fc-660d426ac7b0"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "1", "name": "sample_code", "type": "string", "value": "={{ $json.codigo }}" },
+            { "id": "2", "name": "date", "type": "string", "value": "={{ $json.fecha }}" },
+            { "id": "3", "name": "geologist", "type": "string", "value": "={{ $json.geologo }}" },
+            { "id": "4", "name": "latitude", "type": "number", "value": "={{ Number($json.latitud) }}" },
+            { "id": "5", "name": "longitude", "type": "number", "value": "={{ Number($json.longitud) }}" },
+            { "id": "6", "name": "municipality", "type": "string", "value": "={{ $json.municipio }}" },
+            { "id": "7", "name": "sample_type", "type": "string", "value": "={{ $json.tipo }}" },
+            { "id": "8", "name": "lithology", "type": "string", "value": "={{ $json.litologia }}" },
+            { "id": "9", "name": "priority", "type": "string", "value": "={{ $json.prioridad }}" },
+            { "id": "10", "name": "observations", "type": "string", "value": "={{ $json.observaciones }}" },
+            {
+              "id": "11",
+              "name": "laboratory",
+              "type": "string",
+              "value": "={{ $json.tipo === 'Roca' ? 'Laboratorio Petrográfico' : $json.tipo === 'Suelo' ? 'Laboratorio Geoquímico' : $json.tipo === 'Sedimento' ? 'Laboratorio Geoquímico' : $json.tipo === 'Agua' ? 'Laboratorio Hidroquímico' : $json.tipo === 'Gas del suelo' ? 'Laboratorio de Gases' : 'Por definir' }}"
+            },
+            { "id": "12", "name": "status", "type": "string", "value": "Pendiente" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-edit-fields",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [20, 0]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": { "__rl": true, "value": "public", "mode": "list" },
+        "table": { "__rl": true, "value": "samples", "mode": "list" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sample_code": "={{ $json.sample_code }}",
+            "date": "={{ $json.date }}",
+            "geologist": "={{ $json.geologist }}",
+            "municipality": "={{ $json.municipality }}",
+            "latitude": "={{ $json.latitude }}",
+            "longitude": "={{ $json.longitude }}",
+            "sample_type": "={{ $json.sample_type }}",
+            "lithology": "={{ $json.lithology }}",
+            "priority": "={{ $json.priority }}",
+            "laboratory": "={{ $json.laboratory }}",
+            "status": "={{ $json.status }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "node-postgres",
+      "name": "Guardar en PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [240, 0],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZA_CON_TU_CREDENCIAL_POSTGRES",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REEMPLAZA_CON_TU_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": { "__rl": true, "value": "Inventario", "mode": "list" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Codigo": "={{ $json.sample_code }}",
+            "Fecha": "={{ $json.date }}",
+            "Geologo": "={{ $json.geologist }}",
+            "Municipio": "={{ $json.municipality }}",
+            "Tipo": "={{ $json.sample_type }}",
+            "Litologia": "={{ $json.lithology }}",
+            "Laboratorio": "={{ $json.laboratory }}",
+            "Prioridad": "={{ $json.priority }}",
+            "Estado": "={{ $json.status }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "node-sheets",
+      "name": "Actualizar Inventario (Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [460, 0],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REEMPLAZA_CON_TU_CREDENCIAL_SHEETS",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-prioridad-alta",
+              "leftValue": "={{ $json.priority }}",
+              "rightValue": "Alta",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-prioridad",
+      "name": "¿Prioridad alta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 0]
+    },
+    {
+      "parameters": {
+        "sendTo": "laboratorio@empresa.com, coordinador@empresa.com, director@empresa.com",
+        "subject": "=Nueva muestra prioritaria registrada: {{ $json.sample_code }}",
+        "message": "=Se registró una nueva muestra.\n\nCódigo: {{ $json.sample_code }}\nTipo: {{ $json.sample_type }}\nLitología: {{ $json.lithology }}\nMunicipio: {{ $json.municipality }}\nPrioridad: {{ $json.priority }}\nLaboratorio asignado: {{ $json.laboratory }}\nGeólogo: {{ $json.geologist }}\n\nEl registro ya fue almacenado en PostgreSQL y agregado al inventario de Google Sheets.",
+        "options": {}
+      },
+      "id": "node-gmail",
+      "name": "Notificar Prioridad Alta",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [900, -120],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZA_CON_TU_CREDENCIAL_GMAIL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"ok\", \"mensaje\": \"Muestra registrada y notificada por prioridad alta\", \"sample_code\": $json.sample_code } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" },
+              { "name": "Access-Control-Allow-Headers", "value": "Content-Type" }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-alta",
+      "name": "Responder (prioridad alta)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, -120]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"ok\", \"mensaje\": \"Muestra registrada correctamente\", \"sample_code\": $json.sample_code } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" },
+              { "name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" },
+              { "name": "Access-Control-Allow-Headers", "value": "Content-Type" }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-normal",
+      "name": "Responder (normal)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 120]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Edit Fields", "type": "main", "index": 0 }]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [{ "node": "Guardar en PostgreSQL", "type": "main", "index": 0 }]
+      ]
+    },
+    "Guardar en PostgreSQL": {
+      "main": [
+        [{ "node": "Actualizar Inventario (Sheets)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Actualizar Inventario (Sheets)": {
+      "main": [
+        [{ "node": "¿Prioridad alta?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Prioridad alta?": {
+      "main": [
+        [{ "node": "Notificar Prioridad Alta", "type": "main", "index": 0 }],
+        [{ "node": "Responder (normal)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Notificar Prioridad Alta": {
+      "main": [
+        [{ "node": "Responder (prioridad alta)", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
