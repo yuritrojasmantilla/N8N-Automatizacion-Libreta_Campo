@@ -1,0 +1,606 @@
+{
+  "name": "GeoBitácora — Registro y clasificación de campo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "libreta-geologica",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "acef59cb-340f-4dd9-8a5f-d97804ae0c63",
+      "name": "Webhook - recibir registro",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        1120
+      ],
+      "webhookId": "f81e0c21-c38e-4ef2-839a-a7ffa1cc8893"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$input.first().json.body ?? $input.first().json; const req=['proyecto','estacion','fecha_campo','geologo_nombre','geologo_email','tipo_estudio','descripcion']; const miss=req.filter(k=>!b[k]); if(miss.length) throw new Error('Campos obligatorios: '+miss.join(', ')); const id='GEO-'+new Date().toISOString().slice(0,10).replaceAll('-','')+'-'+String(b.estacion).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(-10); return [{json:{...b,registro_id:id,latitud:b.latitud?Number(b.latitud):null,longitud:b.longitud?Number(b.longitud):null,elevacion_m:b.elevacion_m?Number(b.elevacion_m):null,evidencia_cantidad:Object.keys($input.first().binary||{}).length,estado:b.estado||'registrado'}}];"
+      },
+      "id": "b2bf6e4b-c7a9-47cc-b311-37c727b3ea70",
+      "name": "Validar y normalizar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const x=$input.first().json; const t=(x.tipo_estudio||'otro').toLowerCase(); const all=[x.descripcion,x.riesgo_observado,x.resultado_preliminar,x.material].filter(Boolean).join(' ').toLowerCase(); const classes={suelo:all.includes('contamin')?'contaminación de suelo':all.includes('geotec')?'geotecnia':'caracterización edáfica',roca:all.includes('sulf')||all.includes('mineral')?'mineralización':all.includes('falla')||all.includes('fractura')?'geología estructural':'litología',agua:all.includes('contamin')?'calidad de agua - posible contaminación':all.includes('ph')||all.includes('conductiv')?'hidroquímica':'hidrogeología',otro:'revisión técnica'}; let p=x.prioridad_declarada||'media'; if(/riesgo ambiental|riesgo para personas|derrame|contaminación severa/.test(all))p='critica'; else if(p==='alta'||/contamin|inestabilidad|sulfuro|mineralización|filtración/.test(all))p='alta'; return [{json:{...x,clasificacion:classes[t]||classes.otro,prioridad:p}}];"
+      },
+      "id": "f015683e-5cf7-4f44-8873-3d84fc3fff16",
+      "name": "Clasificar y calcular prioridad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO registros_geologicos (id,fecha_campo,proyecto,estacion,geologo_nombre,geologo_email,tipo_estudio,clasificacion,prioridad,estado,latitud,longitud,elevacion_m,codigo_muestra,material,resultado_preliminar,descripcion,riesgo_observado,recomendacion,evidencia_cantidad) VALUES ('{{$json.registro_id}}','{{$json.fecha_campo}}','{{$json.proyecto}}','{{$json.estacion}}','{{$json.geologo_nombre}}','{{$json.geologo_email}}','{{$json.tipo_estudio}}','{{$json.clasificacion}}','{{$json.prioridad}}','{{$json.estado}}',{{$json.latitud || 'NULL'}},{{$json.longitud || 'NULL'}},{{$json.elevacion_m || 'NULL'}},'{{$json.codigo_muestra || ''}}','{{$json.material || ''}}','{{$json.resultado_preliminar || ''}}','{{$json.descripcion}}','{{$json.riesgo_observado || ''}}','{{$json.recomendacion || ''}}',{{$json.evidencia_cantidad}}) RETURNING id;",
+        "options": {}
+      },
+      "id": "a19a2343-012d-4484-9296-13ebb63750e5",
+      "name": "PostgreSQL - ficha técnica completa",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1808,
+        1120
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "rIZvDg02X9Xr7GUl",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO historial_registros (registro_id,evento,detalle,responsable) VALUES ('{{$('Clasificar y calcular prioridad').first().json.registro_id}}','registro_creado','Registro recibido y clasificado automáticamente','{{$('Clasificar y calcular prioridad').first().json.geologo_nombre}}');",
+        "options": {}
+      },
+      "id": "15f25acb-54f0-42ed-a4f0-ca807ed6163f",
+      "name": "PostgreSQL - historial",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2048,
+        1120
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "rIZvDg02X9Xr7GUl",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1uiWnN3zjpsVueH4CWOMAdgSoOy3MtRuG_Xpb1pGYi2M",
+          "mode": "list",
+          "cachedResultName": "Índice operativo geológico",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uiWnN3zjpsVueH4CWOMAdgSoOy3MtRuG_Xpb1pGYi2M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uiWnN3zjpsVueH4CWOMAdgSoOy3MtRuG_Xpb1pGYi2M/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $('Clasificar y calcular prioridad').item.json.registro_id }}",
+            "Proyecto": "={{ $('Clasificar y calcular prioridad').item.json.proyecto }}",
+            "Fecha": "={{ $('Clasificar y calcular prioridad').item.json.fecha_campo }}",
+            "Estación": "={{ $('Clasificar y calcular prioridad').item.json.estacion }}",
+            "Tipo": "={{ $('Clasificar y calcular prioridad').item.json.tipo_estudio }}",
+            "Geólogo": "={{ $('Clasificar y calcular prioridad').item.json.geologo_nombre }}",
+            "Prioridad": "={{ $('Clasificar y calcular prioridad').item.json.prioridad_declarada }}",
+            "Clasificación": "={{ $('Clasificar y calcular prioridad').item.json.clasificacion }}",
+            "Estado": "={{ $('Validar y normalizar').item.json.estado }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Proyecto",
+              "displayName": "Proyecto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estación",
+              "displayName": "Estación",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tipo",
+              "displayName": "Tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Clasificación",
+              "displayName": "Clasificación",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Prioridad",
+              "displayName": "Prioridad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Geólogo",
+              "displayName": "Geólogo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f729c1e1-72a3-4c63-aab2-b97ac9f058ff",
+      "name": "Google Sheets - índice operativo",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2288,
+        1120
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HKyOdXOcXItiFCTk",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Clasificar y calcular prioridad').first().json.evidencia_cantidad }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3f2389f6-6de2-4edf-9cf4-e47f3704e99f",
+      "name": "¿Tiene fotografías?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2544,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Clasificar y calcular prioridad').first().json.registro_id }}-evidencia",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "CONFIGURAR_CARPETA",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "id": "208b2dc5-c61c-4dd4-a8c8-ffd0d1b28efa",
+      "name": "Google Drive - subir evidencia",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2768,
+        1008
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "thdAssINZwq060KK",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE registros_geologicos SET evidencia_url='={{ $json.webViewLink || $json.webContentLink || '' }}' WHERE id='{{$('Clasificar y calcular prioridad').first().json.registro_id}}';",
+        "options": {}
+      },
+      "id": "1996346d-2b02-4ed7-adf6-14ad0698f1d9",
+      "name": "PostgreSQL - enlace de evidencia",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3008,
+        1008
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "0w0aSVOU4GcQ6MqR",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Clasificar y calcular prioridad').first().json.prioridad }}",
+              "rightValue": "alta",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "leftValue": "={{ $('Clasificar y calcular prioridad').first().json.prioridad }}",
+              "rightValue": "critica",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "6c19c26c-5cd0-435e-bf05-dfa6fdcbe078",
+      "name": "¿Prioridad alta o crítica?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3232,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Clasificar y calcular prioridad').first().json.geologo_email }}, COORDINADOR@EMPRESA.COM",
+        "subject": "=ALERTA {{ $('Clasificar y calcular prioridad').first().json.prioridad.toUpperCase() }} · {{ $('Clasificar y calcular prioridad').first().json.registro_id }}",
+        "message": "=Se registró una alerta {{ $('Clasificar y calcular prioridad').first().json.prioridad }} en estación {{ $('Clasificar y calcular prioridad').first().json.estacion }}. Clasificación: {{ $('Clasificar y calcular prioridad').first().json.clasificacion }}. Riesgo: {{ $('Clasificar y calcular prioridad').first().json.riesgo_observado || 'No especificado' }}. Revise PostgreSQL para el expediente técnico completo.",
+        "options": {}
+      },
+      "id": "bad1d026-0259-4ad4-b0a8-b8ccabb5ba1f",
+      "name": "Gmail - alerta prioritaria",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3472,
+        1040
+      ],
+      "webhookId": "0b21fea4-4aa3-40ce-a641-8b9428381a6b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qTzJTRURU7pFMq42",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Clasificar y calcular prioridad').first().json.geologo_email }}",
+        "subject": "=Registro recibido · {{ $('Clasificar y calcular prioridad').first().json.registro_id }}",
+        "message": "=Tu registro de estación {{ $('Clasificar y calcular prioridad').first().json.estacion }} fue recibido y clasificado como {{ $('Clasificar y calcular prioridad').first().json.clasificacion }} con prioridad {{ $('Clasificar y calcular prioridad').first().json.prioridad }}.",
+        "options": {}
+      },
+      "id": "b4d5a5d3-c17e-4771-96da-9bc3379b5f2a",
+      "name": "Gmail - confirmación",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3472,
+        1232
+      ],
+      "webhookId": "1ec871df-6fca-44ff-9134-72f3948b5f26",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "qTzJTRURU7pFMq42",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const x=$('Clasificar y calcular prioridad').first().json; return [{json:{ok:true,registro_id:x.registro_id,clasificacion:x.clasificacion,prioridad:x.prioridad,mensaje:'Registro geológico creado correctamente'}}];"
+      },
+      "id": "5a93e4c2-f5d0-4abe-99fd-9e41cb1b23aa",
+      "name": "Construir respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3712,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "f67247f2-17d3-4692-abd3-b00541543722",
+      "name": "Responder al formulario",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3920,
+        1120
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - recibir registro": {
+      "main": [
+        [
+          {
+            "node": "Validar y normalizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar y normalizar": {
+      "main": [
+        [
+          {
+            "node": "Clasificar y calcular prioridad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar y calcular prioridad": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - ficha técnica completa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - ficha técnica completa": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - historial": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - índice operativo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - índice operativo": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene fotografías?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene fotografías?": {
+      "main": [
+        [
+          {
+            "node": "Google Drive - subir evidencia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Prioridad alta o crítica?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - subir evidencia": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL - enlace de evidencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL - enlace de evidencia": {
+      "main": [
+        [
+          {
+            "node": "¿Prioridad alta o crítica?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Prioridad alta o crítica?": {
+      "main": [
+        [
+          {
+            "node": "Gmail - alerta prioritaria",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - alerta prioritaria": {
+      "main": [
+        [
+          {
+            "node": "Construir respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - confirmación": {
+      "main": [
+        [
+          {
+            "node": "Construir respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construir respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder al formulario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d7dd5304-c356-4a67-a334-a3549916401e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e18142c4677cd09eae4ca78c3adfca20c564d1bdb0542ad408333b887cc3b766"
+  },
+  "nodeGroups": [],
+  "id": "UV440mIowPs2EnMX",
+  "tags": []
+}
