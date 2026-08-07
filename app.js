@@ -1,176 +1,186 @@
 const config = Object.freeze({
-  // Reemplaza por la URL del webhook de n8n que recibe el registro de muestras.
-  createWebhook: 'https://yuritzarojasmantilla.app.n8n.cloud/webhook/26c27d4a-16a3-4fb5-a7fc-660d426ac7b0',
+  createWebhook:
+    'https://yuritzarojasmantilla.app.n8n.cloud/webhook-test/libreta-geologica',
 });
 
-// Lista precargada de geólogos del equipo de campo.
-// Edita este arreglo para reflejar al equipo real; el formulario la usa
-// para llenar el <select id="m-geologo"> automáticamente.
-const GEOLOGISTS = [
-  'Yuritza Juliana Rojas Mantilla',
-  'Adriana Marcela Reatigui Mateus',
-  'Karen Yuliana Carrizales Perez',
-  'Sebastian Gomez Lopez',
-  'Sebastian Artunduaga Ocampos'
-];
+const form = document.getElementById('registro');
+const message = document.getElementById('mensaje');
+const dateInput = form.querySelector('[name="fecha_campo"]');
+const photoInput = document.getElementById('fotos');
+const photoSummary = document.getElementById('resumen');
+const gpsButton = document.getElementById('gps');
 
-console.info('Configuración n8n cargada:', {
-  createWebhook: config.createWebhook || 'sin configurar',
-});
+function setMessage(text, type = '') {
+  message.textContent = text;
+  message.className = type;
+}
 
-// ------------------------------------------------------------
-// Poblar select de geólogos (manteniendo la opción "Otro" al final)
-// ------------------------------------------------------------
-const selectGeologo = document.getElementById('m-geologo');
-GEOLOGISTS.forEach((name) => {
-  const opt = document.createElement('option');
-  opt.value = name;
-  opt.textContent = name;
-  selectGeologo.insertBefore(opt, selectGeologo.querySelector('option[value="otro"]'));
-});
+if (dateInput) {
+  dateInput.value = new Date().toISOString().slice(0, 10);
+}
 
-// ------------------------------------------------------------
-// Campos "Otro / Otra": mostrar el texto libre asociado y
-// hacerlo obligatorio solo mientras esté visible.
-// ------------------------------------------------------------
-function wireOtherField(selectId, wrapId) {
-  const select = document.getElementById(selectId);
-  const wrap = document.getElementById(wrapId);
-  const input = wrap.querySelector('[data-other-for]');
-  const triggerValue = input.dataset.triggerValue;
+if (photoInput) {
+  photoInput.addEventListener('change', () => {
+    const files = [...photoInput.files];
 
-  select.addEventListener('change', () => {
-    const show = select.value === triggerValue;
-    wrap.hidden = !show;
-    input.required = show;
-    input.disabled = !show;
-    if (!show) input.value = '';
+    if (files.length > 5) {
+      photoInput.value = '';
+      photoSummary.textContent = 'Máximo cinco fotografías.';
+      setMessage('Solo puedes adjuntar máximo cinco fotografías.', 'error');
+      return;
+    }
+
+    photoSummary.textContent = files.length
+      ? `${files.length} foto(s) seleccionada(s)`
+      : 'Sin fotos seleccionadas';
   });
 }
 
-wireOtherField('m-geologo', 'm-geologo-otro-wrap');
-wireOtherField('m-municipio', 'm-municipio-otro-wrap');
-wireOtherField('m-litologia', 'm-litologia-otro-wrap');
-
-// ------------------------------------------------------------
-// Fecha por defecto: hoy (editable por el usuario)
-// ------------------------------------------------------------
-const fechaInput = document.getElementById('m-fecha');
-fechaInput.value = new Date().toISOString().slice(0, 10);
-
-// ------------------------------------------------------------
-// Botón "Usar ubicación GPS"
-// ------------------------------------------------------------
-const btnGeo = document.getElementById('btn-geo');
-const latInput = document.getElementById('m-lat');
-const lonInput = document.getElementById('m-lon');
-
-btnGeo.addEventListener('click', () => {
-  if (!navigator.geolocation) {
-    alert('Este dispositivo no permite obtener la ubicación automáticamente.');
-    return;
-  }
-  const originalLabel = btnGeo.textContent;
-  btnGeo.textContent = 'Obteniendo ubicación...';
-  btnGeo.disabled = true;
-
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      latInput.value = position.coords.latitude.toFixed(6);
-      lonInput.value = position.coords.longitude.toFixed(6);
-      btnGeo.textContent = originalLabel;
-      btnGeo.disabled = false;
-    },
-    () => {
-      alert('No se pudo obtener la ubicación. Ingrésala manualmente.');
-      btnGeo.textContent = originalLabel;
-      btnGeo.disabled = false;
-    }
-  );
-});
-
-// ------------------------------------------------------------
-// Construcción del FormData a enviar
-// ------------------------------------------------------------
-function buildFormData(form) {
-  const fd = new FormData(form);
-
-  form.querySelectorAll('select').forEach((select) => {
-    const key = select.name;
-    const option = select.options[select.selectedIndex];
-    let value = option ? option.text.trim() : '';
-
-    // Si el usuario eligió "Otro" / "Otra", se envía el texto libre
-    // asociado en lugar del texto "Otro" y se descarta el campo auxiliar.
-    const otherInput = form.querySelector(`[data-other-for="${key}"]`);
-    if (otherInput && select.value === otherInput.dataset.triggerValue) {
-      value = otherInput.value.trim();
-      fd.delete(otherInput.name);
+if (gpsButton) {
+  gpsButton.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      setMessage('Tu navegador no permite obtener la ubicación.', 'error');
+      return;
     }
 
-    fd.delete(key);
-    fd.append(key, value);
+    const originalText = gpsButton.textContent;
+    gpsButton.textContent = 'Obteniendo ubicación…';
+    gpsButton.disabled = true;
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        form.elements.latitud.value = coords.latitude.toFixed(7);
+        form.elements.longitud.value = coords.longitude.toFixed(7);
+
+        if (coords.altitude !== null && form.elements.elevacion_m) {
+          form.elements.elevacion_m.value = coords.altitude.toFixed(1);
+        }
+
+        setMessage('Ubicación GPS agregada.', 'ok');
+        gpsButton.textContent = originalText;
+        gpsButton.disabled = false;
+      },
+      () => {
+        setMessage(
+          'No se pudo obtener la ubicación. Puedes ingresarla manualmente.',
+          'error'
+        );
+        gpsButton.textContent = originalText;
+        gpsButton.disabled = false;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+      }
+    );
+  });
+}
+
+function buildFormData(currentForm) {
+  const data = new FormData();
+
+  [...currentForm.elements].forEach((field) => {
+    if (!field.name || field.disabled) return;
+
+    if (field.type === 'file') {
+      [...field.files]
+        .filter((file) => file.size > 0)
+        .forEach((file) => {
+          data.append(field.name, file, file.name);
+        });
+
+      return;
+    }
+
+    if (
+      (field.type === 'checkbox' || field.type === 'radio') &&
+      !field.checked
+    ) {
+      return;
+    }
+
+    /*
+      Se envía el value del select, no el texto.
+      Así n8n recibe: suelo, roca, agua, alta, media o baja.
+    */
+    data.append(field.name, field.value);
   });
 
-  return fd;
+  return data;
 }
-
-function setStatus(form, type, message) {
-  const status = form.querySelector('.status');
-  status.className = `status ${type}`;
-  status.textContent = message;
-}
-
-// ------------------------------------------------------------
-// Envío del formulario
-// ------------------------------------------------------------
-const form = document.getElementById('form-muestra');
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
-  const status = form.querySelector('.status');
-  const button = form.querySelector('.submit');
-
-  status.className = 'status';
-  status.textContent = '';
-
   if (!form.reportValidity()) return;
 
-  if (!config.createWebhook || config.createWebhook.includes('TU-INSTANCIA')) {
-    setStatus(form, 'error', 'Falta configurar la URL del webhook en app.js.');
+  if (!config.createWebhook.includes('/webhook-test/libreta-geologica')) {
+    setMessage('La URL del webhook no está configurada correctamente.', 'error');
     return;
   }
 
-  const formData = buildFormData(form);
+  const submitButton = form.querySelector('.enviar');
+  const originalText = submitButton.textContent;
 
-  button.disabled = true;
-  const originalLabel = button.querySelector('span').textContent;
-  button.querySelector('span').textContent = 'Enviando...';
+  submitButton.disabled = true;
+  submitButton.textContent = 'Enviando registro…';
+  setMessage('Enviando registro a n8n…');
 
   try {
-    // Se envía como multipart/form-data (no JSON) para poder incluir
-    // los archivos de fotografías junto con los demás campos.
+    const formData = buildFormData(form);
+
     const response = await fetch(config.createWebhook, {
       method: 'POST',
       body: formData,
+      headers: {
+        Accept: 'application/json',
+      },
     });
 
+    const responseText = await response.text();
+
     if (!response.ok) {
-      throw new Error(`El servidor respondió con estado ${response.status}`);
+      console.error('Error devuelto por n8n:', {
+        status: response.status,
+        response: responseText,
+      });
+
+      throw new Error(`n8n respondió con estado ${response.status}`);
     }
 
-    setStatus(form, 'success', 'Muestra registrada correctamente.');
+    let result = {};
+
+    try {
+      result = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      // El flujo puede responder texto y aun así haberse ejecutado correctamente.
+    }
+
+    setMessage(
+      result.registro_id
+        ? `Registro creado correctamente. ID: ${result.registro_id}`
+        : 'Registro creado correctamente.',
+      'ok'
+    );
+
     form.reset();
-    fechaInput.value = new Date().toISOString().slice(0, 10);
-    document
-      .querySelectorAll('.field-other')
-      .forEach((wrap) => { wrap.hidden = true; });
+
+    if (dateInput) {
+      dateInput.value = new Date().toISOString().slice(0, 10);
+    }
+
+    if (photoSummary) {
+      photoSummary.textContent = 'Sin fotos seleccionadas';
+    }
   } catch (error) {
     console.error('Error al enviar el formulario:', error);
-    setStatus(form, 'error', 'No se pudo enviar la solicitud. Intenta de nuevo.');
+
+    setMessage(
+      'El formulario llegó a n8n, pero el flujo devolvió un error. Revisa la ejecución roja en n8n.',
+      'error'
+    );
   } finally {
-    button.disabled = false;
-    button.querySelector('span').textContent = originalLabel;
+    submitButton.disabled = false;
+    submitButton.textContent = originalText;
   }
 });
