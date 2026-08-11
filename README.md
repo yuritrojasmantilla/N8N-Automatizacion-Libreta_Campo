@@ -3,8 +3,6 @@
 ## Sobre el proyecto
  
 GeoBitácora es un formulario web (`index.html` + `app.js`) para que geólogos registren observaciones de campo (estación, ubicación GPS, muestra, hallazgo, hasta 5 fotos) directamente desde el sitio. Al enviarse, el formulario dispara un flujo de n8n que valida los datos, los clasifica y calcula su prioridad automáticamente, los guarda en PostgreSQL, sube la evidencia fotográfica a Google Drive, la indexa en una hoja de Google Sheets y notifica por Gmail al geólogo (y, si la prioridad es alta o crítica, también envía una alerta aparte). Este README documenta la parte de PostgreSQL de ese flujo.
- 
-Este README explica el `schema.sql`, reconstruido únicamente con lo que muestran tus dos capturas de pgAdmin (columna, tipo de dato, identidad, no nulo, valor por defecto). No agrega llaves primarias/foráneas, `CHECK` ni índices porque esa información no aparecía en las capturas.
 
 ## `historial_registros`
 
