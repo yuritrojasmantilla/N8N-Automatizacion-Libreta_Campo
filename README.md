@@ -15,6 +15,7 @@ GeoBitácora es un formulario web (`index.html` + `app.js`) para que geólogos r
 | `detalle` | `text` | No | — |
 | `responsable` | `varchar(160)` | No | — |
 
+```sql
 CREATE TABLE historial_registros (
     id            bigserial     NOT NULL DEFAULT nextval('historial_registros_id_seq'::regclass),
     registro_id   varchar(50),
@@ -23,6 +24,7 @@ CREATE TABLE historial_registros (
     detalle       text,
     responsable   varchar(160)
 );
+```
 
 ## `registros_geologicos`
 
@@ -51,6 +53,7 @@ CREATE TABLE historial_registros (
 | `evidencia_cantidad` | `int2` | Sí | `0` |
 | `evidencia_url` | `text` | No | — |
 
+```sql
 CREATE TABLE registros_geologicos (
     id                    varchar(50)   NOT NULL,
     creado_en             timestamptz   NOT NULL DEFAULT now(),
@@ -59,22 +62,23 @@ CREATE TABLE registros_geologicos (
     estacion              varchar(80)   NOT NULL,
     geologo_nombre        varchar(160)  NOT NULL,
     geologo_email         varchar(254)  NOT NULL,
-    tipo_estudio          varchar(30)   NOT NULL,
-    clasificacion         varchar(100)  NOT NULL,
-    prioridad             varchar(10)   NOT NULL,
-    estado                varchar(40)   NOT NULL DEFAULT 'registrado'::character varying,
-    latitud               numeric(10,7),
-    longitud              numeric(10,7),
-    elevacion_m           numeric(10,2),
-    codigo_muestra        varchar(80),
-    material              varchar(120),
-    resultado_preliminar  text,
-    descripcion           text          NOT NULL,
-    riesgo_observado      text,
-    recomendacion         text,
-    evidencia_cantidad    int2          NOT NULL DEFAULT 0,
-    evidencia_url         text
+    tipo_estudio           varchar(30)   NOT NULL,
+    clasificacion          varchar(100)  NOT NULL,
+    prioridad              varchar(10)   NOT NULL,
+    estado                 varchar(40)   NOT NULL DEFAULT 'registrado'::character varying,
+    latitud                numeric(10,7),
+    longitud               numeric(10,7),
+    elevacion_m            numeric(10,2),
+    codigo_muestra         varchar(80),
+    material               varchar(120),
+    resultado_preliminar   text,
+    descripcion            text          NOT NULL,
+    riesgo_observado       text,
+    recomendacion          text,
+    evidencia_cantidad     int2          NOT NULL DEFAULT 0,
+    evidencia_url          text
 );
+```
 
 ## Flujo de trabajo (n8n)
  
